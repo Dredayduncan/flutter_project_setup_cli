@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:{{project_name}}/api_utils/interceptors/custom_dio_interceptor.dart';
 import 'package:{{project_name}}/services/auth_service.dart';
 import 'package:{{project_name}}/services/platform_services/storage_services/token_storage_service.dart';
+import 'package:{{project_name}}/routes/routes.dart';
 
 final getIt = GetIt.instance;
 
@@ -19,6 +20,7 @@ Future<void> registerDependencies() async {
   const secureStorage = FlutterSecureStorage();
 
   getIt..registerSingleton<Dio>(dio)
+    ..registerSingleton<AppRouter>(AppRouter())
 
   ..registerSingleton<AuthService>(AuthService())
     ..registerSingleton<TokenStorageService>(

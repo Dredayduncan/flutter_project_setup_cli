@@ -1,4 +1,4 @@
-name: backend_setup_with_jwt
+name: notifications_setup
 description: A new brick created with the Mason CLI.
 
 # The following defines the brick repository url.
@@ -28,5 +28,20 @@ environment:
 vars:
   project_name:
     type: string
-    description: Your project name
-    prompt: What is your project name?
+    description: Your name
+    prompt: What is your name?
+
+  deep_link_scheme:
+    type: string
+    description: The scheme for your deep link
+    prompt: What is the scheme for your deep link?
+
+  deep_link_host:
+    type: string
+    description: The host for your deep link
+    prompt: What is the host for your deep link?
+
+  application_id:
+    type: string
+    description: The bundle ID for the project
+    prompt: What is your application ID?

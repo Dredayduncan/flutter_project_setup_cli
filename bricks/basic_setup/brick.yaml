@@ -25,3 +25,18 @@ environment:
 #  * an optional prompt phrase used when asking for the variable
 #  * a list of values (enums only)
 #  * an optional separator (list only)
+vars:
+  project_name:
+    type: string
+    description: Your project name
+    prompt: What is your project name?
+
+  deep_link_scheme:
+    type: string
+    description: The scheme for your deep link
+    prompt: What is the scheme for your deep link?
+
+  deep_link_host:
+    type: string
+    description: The host for your deep link
+    prompt: What is the host for your deep link?

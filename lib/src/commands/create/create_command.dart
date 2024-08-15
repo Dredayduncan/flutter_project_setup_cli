@@ -46,6 +46,11 @@ class CreateCommand extends Command<int> {
         help: 'Implement Riverpod state management',
       )
       ..addFlag(
+        'use-deep-linking',
+        abbr: 'd',
+        negatable: false,
+      )
+      ..addFlag(
         'add-push-notifications',
         abbr: 'n',
         help: 'Enable Push notifications with Firebase messaging',
@@ -106,6 +111,7 @@ class CreateCommand extends Command<int> {
     final useBloc = argResults?['use-bloc'] as bool;
     final hasExternalBackend = argResults?['has-external-backend'] as bool;
     final addPushNotifications = argResults?['add-push-notifications'] as bool;
+    final useDeepLinking = argResults?['use-deep-linking'] as bool;
 
     // Check if the project name was provided
     if (projectName == null) {
@@ -132,20 +138,40 @@ class CreateCommand extends Command<int> {
       );
     }
 
+    Uri? deeplinkUri;
+
+    if (useDeepLinking) {
+      // validate the project name
+      while (deeplinkUri == null) {
+        stdout.write(
+          'Enter your deeplink url (https://example.com): ',
+        );
+        final deeplinkUriInput = stdin.readLineSync();
+        if (deeplinkUriInput != null &&
+            Uri.tryParse(deeplinkUriInput) != null) {
+          deeplinkUri = Uri.parse(deeplinkUriInput);
+          break;
+        }
+
+        _logger.err(
+          'Invalid deep link. Please ensure it has the format ((https://example.com)).',
+        );
+      }
+    }
+
     // Check if the user has installed the very_good_cli package
     _logger.info('Creating very_good flutter app...');
-    final createVeryGoodFlutterApp = await Process.run('very_good', [
+    final createVeryGoodFlutterApp = await Process.start('very_good', [
       'create',
       'flutter_app',
       projectName,
       '--application-id',
       applicationId,
-    ]);
+    ], mode: ProcessStartMode.inheritStdio);
 
-    if (createVeryGoodFlutterApp.exitCode != 0) {
+    if ((await createVeryGoodFlutterApp.exitCode) != 0) {
       _logger.err('Failed to create very_good_flutter_app. '
-          'Ensure you have installed the very_good_cli package, '
-          'by running "dart pub global activate very_good_cli" and try again.');
+          '${createVeryGoodFlutterApp.stderr}',);
       return ExitCode.software.code;
     }
     _logger
@@ -197,6 +223,7 @@ class CreateCommand extends Command<int> {
 
     // Create basic setup files which include Get_it, Equatable, and AutoRoute setup
     _logger.info('Setting up setup files...');
+
     final makeBasicSetup = await Process.start(
       'mason',
       [
@@ -204,8 +231,14 @@ class CreateCommand extends Command<int> {
         'basic_setup',
         '-o',
         projectName,
+        '--project_name',
+        projectName,
         '--on-conflict',
         'overwrite',
+        '--deep_link_scheme',
+        deeplinkUri?.scheme ?? '',
+        '--deep_link_host',
+        deeplinkUri?.host ?? '',
       ],
       mode: ProcessStartMode.inheritStdio,
     );
@@ -215,7 +248,41 @@ class CreateCommand extends Command<int> {
           'Failed to setup setup files. ${makeBasicSetup.stderr.toString()}');
       return ExitCode.software.code;
     }
-    _logger.info('Setup files have been setup.');
+    _logger
+      ..info('Setup files have been setup.')
+
+      // Execute build runner to build the auto_route files
+      ..info('Building auto_route files...');
+    final buildRunner = await Process.run(
+      'dart',
+      [
+        'run',
+        'build_runner',
+        'build',
+        '--delete-conflicting-outputs',
+      ],
+      workingDirectory: projectName,
+    );
+
+    if (buildRunner.exitCode != 0) {
+      _logger.err(
+        'Failed to build auto route files. ${buildRunner.stderr}',
+      );
+      return ExitCode.software.code;
+    }
+    _logger
+      ..info('Auto route files have been built.')
+
+      // run the flutter pub get command
+      ..info('Running flutter pub get...');
+    await Process.run(
+      'flutter',
+      [
+        'pub',
+        'get',
+      ],
+      workingDirectory: projectName,
+    );
 
     // check if the user opted for an external backend and create the api_utils folder
     if (hasExternalBackend) {
@@ -228,6 +295,8 @@ class CreateCommand extends Command<int> {
           'basic_setup_with_external_backend',
           '-o',
           projectName,
+          '--project_name',
+          projectName,
           '--on-conflict',
           'overwrite',
         ],
@@ -236,7 +305,8 @@ class CreateCommand extends Command<int> {
 
       if ((await makeSetupWithExternalBackend.exitCode) != 0) {
         _logger.err(
-          'Failed to setup external backend setup files. ${makeSetupWithExternalBackend.stderr.toString()}',
+          'Failed to setup external backend setup files. '
+              '${makeSetupWithExternalBackend.stderr.toString()}',
         );
         return ExitCode.software.code;
       }
@@ -296,8 +366,54 @@ class CreateCommand extends Command<int> {
           return ExitCode.software.code;
         }
         _logger.info('API Interceptor for JWT authentication has been setup.');
-
       }
+    }
+
+    // Check if the user wants to add notifications
+    if (addPushNotifications) {
+      _logger.info('Installing firebase_messaging, firebase_core, and flutter_local_notifications...');
+      await Process.run(
+        'flutter',
+        [
+          'pub',
+          'add',
+          'firebase_messaging',
+          'firebase_core',
+          'flutter_local_notifications',
+        ],
+        workingDirectory: projectName,
+      );
+
+      _logger.info('Setting up push notifications...');
+
+      final makeSetupPushNotifications = await Process.start(
+        'mason',
+        [
+          'make',
+          'notification_setup',
+          '-o',
+          projectName,
+          '--project_name',
+          projectName,
+          '--application_id',
+          applicationId,
+          '--on-conflict',
+          'overwrite',
+          '--deep_link_scheme',
+          deeplinkUri?.scheme ?? '',
+          '--deep_link_host',
+          deeplinkUri?.host ?? '',
+        ],
+        mode: ProcessStartMode.inheritStdio,
+      );
+
+      if ((await makeSetupPushNotifications.exitCode) != 0) {
+        _logger.err(
+          'Failed to setup notifications. ${makeSetupPushNotifications.stderr.toString()}',
+        );
+        return ExitCode.software.code;
+      }
+      _logger.info('Notifications have been setup.');
     }
 
     return ExitCode.success.code;

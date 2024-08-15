@@ -20,3 +20,6 @@ bricks:
 
   backend_setup_with_jwt:
     path: bricks/backend_setup_with_jwt/
+
+  notifications_setup:
+    path: bricks/notifications_setup/

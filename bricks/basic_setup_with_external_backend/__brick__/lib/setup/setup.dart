@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:{{project_name}}/routes/routes.dart';
+
 final getIt = GetIt.instance;
 
 final dio = Dio(
@@ -9,6 +11,7 @@ final dio = Dio(
 );
 
 Future<void> registerDependencies() async {
-  getIt.registerSingleton<Dio>(dio);
+  getIt..registerSingleton<Dio>(dio)
+  ..registerSingleton<AppRouter>(AppRouter());
 
 }
