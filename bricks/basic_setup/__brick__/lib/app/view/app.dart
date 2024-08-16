@@ -1,8 +1,8 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:{{project_name}}/l10n/l10n.dart';
+import 'package:{{project-name}}/l10n/l10n.dart';
 import 'package:flutter/material.dart';
-import 'package:{{project_name}}/setup/setup.dart';
-import 'package:{{project_name}}/routes/routes.dart';
+import 'package:{{project-name}}/setup/setup.dart';
+import 'package:{{project-name}}/routes/routes.dart';
 
 class App extends StatefulWidget {
   const App({super.key});

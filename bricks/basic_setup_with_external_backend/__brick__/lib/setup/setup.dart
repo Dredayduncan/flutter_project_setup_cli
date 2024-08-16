@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:{{project_name}}/routes/routes.dart';
+import 'package:{{project-name}}/routes/routes.dart';
 
 final getIt = GetIt.instance;
 

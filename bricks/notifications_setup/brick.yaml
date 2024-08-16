@@ -26,22 +26,28 @@ environment:
 #  * a list of values (enums only)
 #  * an optional separator (list only)
 vars:
-  project_name:
+  project-name:
     type: string
     description: Your name
     prompt: What is your name?
 
-  deep_link_scheme:
+  deeplink-scheme:
     type: string
     description: The scheme for your deep link
     prompt: What is the scheme for your deep link?
 
-  deep_link_host:
+  deeplink-host:
     type: string
     description: The host for your deep link
     prompt: What is the host for your deep link?
 
-  application_id:
+  application-id:
     type: string
     description: The bundle ID for the project
     prompt: What is your application ID?
+
+  use-riverpod:
+    type: boolean
+    description: The state management solution you want to use
+    prompt: Do you want to use Riverpod?
+    default: false

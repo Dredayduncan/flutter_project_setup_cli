@@ -26,7 +26,7 @@ environment:
 #  * a list of values (enums only)
 #  * an optional separator (list only)
 vars:
-  project_name:
+  project-name:
     type: string
     description: Your project name
     prompt: What is your project name?

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="{{project_name}}">
+    package="{{project-name}}">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -30,7 +30,7 @@
             <meta-data
                 android:name="flutterEmbedding"
                 android:value="2" />
-            {{#deep_link_scheme.trim.nonEmpty}}
+            {{#deeplink-scheme.trim.nonEmpty}}
             <meta-data
                 android:name="flutter_deeplinking_enabled"
                 android:value="true" />
@@ -41,10 +41,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="{{deep_link_scheme}}" />
-                <data android:host="{{deep_link_host}}" />
+                <data android:scheme="{{deeplink-scheme}}" />
+                <data android:host="{{deeplink-host}}" />
             </intent-filter>
-            {{/deep_link_scheme.trim.nonEmpty}}
+            {{/deeplink-scheme.trim.nonEmpty}}
         </activity>
 
     </application>
