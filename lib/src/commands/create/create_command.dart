@@ -491,7 +491,7 @@ class CreateCommand extends Command<int> {
         'mason',
         [
           'make',
-          'notification_setup',
+          'notifications_setup',
           '-o',
           projectName,
           '--project-name',
@@ -575,8 +575,8 @@ class CreateCommand extends Command<int> {
     // Dynamic Link choice
     if (useDeepLinking) {
       _logger.success('Note: Dynamic Links have been set up, navigate to your '
-          'AndroidManifest.xml and Info.plist to update the links, and to the '
-          'appRouterConfig variable in the app.dart to configure them.');
+          'Info.plist to update the links, and to the '
+          'appRouterConfig variable in the lib/app/view/app.dart to configure them.');
     }
 
     return ExitCode.success.code;

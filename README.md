@@ -27,11 +27,11 @@ dart pub global activate --source=path <path to this package>
 ## Usage
 
 ```sh
-# Sample command
-$ flutter_project_setup_cli sample
+# Create a new flutter project
+$ flutter_project_setup_cli create
 
-# Sample command option
-$ flutter_project_setup_cli sample --cyan
+# Create a new flutter project with specified project name and external backend configuration
+$ flutter_project_setup_cli -p new_app -e
 
 # Show CLI version
 $ flutter_project_setup_cli --version
