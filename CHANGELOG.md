@@ -6,3 +6,4 @@ Flutter Project Setup CLI Changelog
 - Implemented dynamic links, and JWT authentication setups
 - Implemented State Management setup with Riverpod
 - Implemented Notification setup with Firebase Cloud Messaging
+- Implemented Firebase project integration

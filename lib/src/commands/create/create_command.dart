@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:flutter_project_setup_cli/src/commands/create/utils/firebase_setup.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// {@template sample_command}
@@ -88,9 +89,7 @@ class CreateCommand extends Command<int> {
         if ((lastPath == null || lastPath.trim().isEmpty) &&
             pathSegments.length > 1) {
           newDirectoryPath =
-              '${destination.path}/${entity.uri.pathSegments[
-                entity.uri.pathSegments.length - 2
-              ]}';
+              '${destination.path}/${entity.uri.pathSegments[entity.uri.pathSegments.length - 2]}';
         } else {
           newDirectoryPath = '${destination.path}/${pathSegments.last}';
         }
@@ -122,6 +121,88 @@ class CreateCommand extends Command<int> {
     }
   }
 
+  Future<bool> setupFirebase({
+    required String projectName,
+    required String? firebaseProjectId,
+    required String applicationId,
+  }) async {
+    // Check if the user provided a firebase project ID and check if it exists
+    if (firebaseProjectId != null) {
+      _logger.info(
+        blue.wrap(
+          'Checking if the firebase project ($firebaseProjectId) exists...',
+        ),
+      );
+      final projectExists = await firebaseProjectExists(
+        projectId: firebaseProjectId,
+      );
+
+      // Check if the project does not exist
+      if (!projectExists) {
+        _logger.err('The provided firebase project ID does not exist.');
+        return false;
+      }
+    } else {
+      // Create a new firebase project
+      _logger.info(blue.wrap('Creating a new firebase project...'));
+      // Replace the all underscores with a hyphen
+      final projectNameWithoutUnderscores = projectName.replaceAll('_', '-');
+      firebaseProjectId = '$projectNameWithoutUnderscores-flavors-dev';
+
+      final firebaseProjectCreation = await createFirebaseProject(
+        projectNameWithoutUnderscores: projectNameWithoutUnderscores,
+        projectId: firebaseProjectId,
+      );
+
+      // Check if an error occurred during the firebase project creation
+      if (firebaseProjectCreation is String) {
+        _logger.err(firebaseProjectCreation);
+        return false;
+      }
+
+      // Continuously check for the created firebase project
+      const maxRetries = 10;
+      int attempt = 1;
+
+      while (!await firebaseProjectExists(
+        projectId: firebaseProjectId,
+      )) {
+        _logger.err(
+          "Project with ID '$firebaseProjectId' not found. Attempt $attempt/$maxRetries...",
+        );
+
+        // Increment attempt counter
+        attempt++;
+
+        // Exit if maximum retries reached
+        if (attempt > maxRetries) {
+          _logger.err(
+              'Unable to integrate firebase. Max retries reached. Exiting...');
+          return false;
+        }
+
+        // Wait before retrying
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
+
+    // Integrate the firebase project
+    _logger.info(blue.wrap('Integrating firebase...'));
+    final firebaseIntegration = await integrateFirebaseProject(
+      projectId: firebaseProjectId,
+      applicationId: applicationId,
+      projectName: projectName,
+    );
+
+    // Check if the firebase integration failed
+    if (firebaseIntegration is String) {
+      _logger.err(firebaseIntegration);
+      return false;
+    }
+
+    return true;
+  }
+
   @override
   Future<int> run() async {
     String? projectName = argResults?['project-name'] as String?;
@@ -133,21 +214,47 @@ class CreateCommand extends Command<int> {
     final hasExternalBackend = argResults?['has-external-backend'] as bool;
     final addPushNotifications = argResults?['add-push-notifications'] as bool;
     final useDeepLinking = argResults?['use-deep-linking'] as bool;
+    String? firebaseProjectId;
+
+    // Check if the user has very_good_cli installed
+    // Run the 'firebase --version' command
+    final veryGoodCLIResult = await Process.run('very_good', ['--version']);
+
+    // If the exit code is not 0, the command failed
+    if (veryGoodCLIResult.exitCode != 0) {
+      usageException(
+        'very_good_cli is not installed or not in PATH. You can '
+        'install it with this command: pub global activate very_good_cli',
+      );
+    }
 
     // Ensure the user has firebase installed if the firebase option is selected
-    if (integrateFirebase) {
-      // Run the 'firebase --version' command
-      final firebaseResult = await Process.run('firebase', ['--version']);
+    if (integrateFirebase || addPushNotifications) {
+      // Get the user's firebase project ID
+      stdout.write(
+        'Enter your firebase project ID (leave blank to create a new firebase project): ',
+      );
+      firebaseProjectId = stdin.readLineSync()?.trim();
 
-      // If the exit code is not 0, the command failed
-      if (firebaseResult.exitCode != 0) {
-        usageException(
-          'Firebase CLI is not installed or not in PATH. You can '
-          'install it here: https://firebase.google.com/docs/cli',
-        );
+      // if the user didn't enter a project ID
+      if (firebaseProjectId == null || firebaseProjectId.isEmpty) {
+        // check if the user has the firebase CLI tool installed because
+        // we need it to create a new project
+
+        // Run the 'firebase --version' command
+        final firebaseResult = await Process.run('firebase', ['--version']);
+
+        // If the exit code is not 0, the command failed
+        if (firebaseResult.exitCode != 0) {
+          usageException(
+            'Firebase CLI is not installed or not in PATH. You can '
+            'install it here: https://firebase.google.com/docs/cli',
+          );
+        }
       }
 
-      // check if the user has the flutterfire CLI tool installed
+      // check if the user has the flutterfire CLI tool installed to integrate
+      // the firebase project
       final flutterfireResult = await Process.run('flutterfire', ['--version']);
 
       // If the exit code is not 0, the command failed
@@ -172,6 +279,7 @@ class CreateCommand extends Command<int> {
 
         _logger.success('flutterfire CLI tool installed.');
       }
+
     }
 
     // Check if the project name was provided
@@ -181,14 +289,14 @@ class CreateCommand extends Command<int> {
         stdout.write(
           'Enter your project name (lowercase letters and underscores only): ',
         );
-        projectName = stdin.readLineSync();
+        projectName = stdin.readLineSync()?.trim();
         if (projectName != null && RegExp(r'^[a-z_]+$').hasMatch(projectName)) {
           break;
         }
 
         _logger.err(
           'Invalid project name. Please use only lowercase letters and '
-              'underscores.',
+          'underscores.',
         );
       }
     }
@@ -204,7 +312,7 @@ class CreateCommand extends Command<int> {
           'Enter your deeplink url (https://example.com): ',
         );
         // read the input from the user
-        final deeplinkUriInput = stdin.readLineSync();
+        final deeplinkUriInput = stdin.readLineSync()?.trim();
 
         // check if the input is a valid URI
         if (deeplinkUriInput != null &&
@@ -215,7 +323,7 @@ class CreateCommand extends Command<int> {
 
         _logger.err(
           'Invalid deep link. Please ensure it has the format '
-              '((https://example.com)).',
+          '((https://example.com)).',
         );
       }
     }
@@ -408,7 +516,7 @@ class CreateCommand extends Command<int> {
         stdout.write(
           'Does the backend use JWT for authentication? (y/n): ',
         );
-        final usesJWTResponse = stdin.readLineSync();
+        final usesJWTResponse = stdin.readLineSync()?.trim();
         if (usesJWTResponse != 'y' && usesJWTResponse != 'n') {
           _logger.err(
             'Invalid option. Please use y or n.',
@@ -464,8 +572,31 @@ class CreateCommand extends Command<int> {
       }
     }
 
+    // Check if the user wants to integrate Firebase without adding push notifications
+    if (integrateFirebase && !addPushNotifications) {
+      final firebaseSetup = await setupFirebase(
+        projectName: projectName,
+        firebaseProjectId: firebaseProjectId,
+        applicationId: applicationId,
+      );
+
+      if (!firebaseSetup) {
+        return ExitCode.software.code;
+      }
+    }
+
     // Check if the user wants to add notifications
     if (addPushNotifications) {
+      final firebaseSetup = await setupFirebase(
+        projectName: projectName,
+        firebaseProjectId: firebaseProjectId,
+        applicationId: applicationId,
+      );
+
+      if (!firebaseSetup) {
+        return ExitCode.software.code;
+      }
+
       _logger.info(
         blue.wrap(
           'Installing firebase_messaging, firebase_core, '
@@ -551,7 +682,7 @@ class CreateCommand extends Command<int> {
     if (useRiverpod) {
       _logger.success(
         'Note: Basic Riverpod setup has been done, but you may need to manually'
-            ' adjust some code for full Riverpod integration.',
+        ' adjust some code for full Riverpod integration.',
       );
     }
 
