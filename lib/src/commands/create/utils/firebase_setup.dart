@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:mason_logger/mason_logger.dart';
-
 Future<String?> createFirebaseProject({
   required String projectNameWithoutUnderscores,
   required String projectId,
