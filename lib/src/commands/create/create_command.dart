@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:flutter_project_setup_cli/src/commands/create/utils/brick_setup.dart';
+import 'package:flutter_project_setup_cli/src/commands/create/utils/directory_management.dart';
 import 'package:flutter_project_setup_cli/src/commands/create/utils/firebase_setup.dart';
+import 'package:flutter_project_setup_cli/src/commands/create/utils/package_management.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// {@template sample_command}
@@ -68,141 +71,6 @@ class CreateCommand extends Command<int> {
 
   final Logger _logger;
 
-  // A function to copy a directory to the specified destination
-  Future<void> copyDirectory(Directory source, Directory destination) async {
-    // Create the destination directory if it doesn't exist
-    await destination.create(recursive: true);
-
-    // Copy all files and directories from the source to the destination
-    await for (final entity in source.list()) {
-      if (entity is Directory) {
-        // Get the path segment of the directory
-        final pathSegments = entity.uri.pathSegments;
-
-        // Get the last path segment of the directory
-        final lastPath = pathSegments.lastOrNull;
-
-        late String newDirectoryPath;
-
-        // If the last path segment is empty, use the second-to-last path
-        // segment as the new directory name
-        if ((lastPath == null || lastPath.trim().isEmpty) &&
-            pathSegments.length > 1) {
-          newDirectoryPath =
-              '${destination.path}/${entity.uri.pathSegments[entity.uri.pathSegments.length - 2]}';
-        } else {
-          newDirectoryPath = '${destination.path}/${pathSegments.last}';
-        }
-
-        await copyDirectory(entity, Directory(newDirectoryPath));
-      } else if (entity is File) {
-        final newFile =
-            File('${destination.path}/${entity.uri.pathSegments.last}');
-        await entity.copy(newFile.path);
-      }
-    }
-  }
-
-  Future<bool> deleteFolder(String folderPath) async {
-    final directory = Directory(folderPath);
-
-    if (directory.existsSync()) {
-      try {
-        await directory.delete(recursive: true);
-        _logger.success('Successfully deleted folder: $folderPath');
-        return true;
-      } catch (e) {
-        _logger.err('Error deleting folder: $e');
-        return false;
-      }
-    } else {
-      _logger.err('Folder does not exist: $folderPath');
-      return false;
-    }
-  }
-
-  Future<bool> setupFirebase({
-    required String projectName,
-    required String? firebaseProjectId,
-    required String applicationId,
-  }) async {
-    // Check if the user provided a firebase project ID and check if it exists
-    if (firebaseProjectId != null) {
-      _logger.info(
-        blue.wrap(
-          'Checking if the firebase project ($firebaseProjectId) exists...',
-        ),
-      );
-      final projectExists = await firebaseProjectExists(
-        projectId: firebaseProjectId,
-      );
-
-      // Check if the project does not exist
-      if (!projectExists) {
-        _logger.err('The provided firebase project ID does not exist.');
-        return false;
-      }
-    } else {
-      // Create a new firebase project
-      _logger.info(blue.wrap('Creating a new firebase project...'));
-      // Replace the all underscores with a hyphen
-      final projectNameWithoutUnderscores = projectName.replaceAll('_', '-');
-      firebaseProjectId = '$projectNameWithoutUnderscores-flavors-dev';
-
-      final firebaseProjectCreation = await createFirebaseProject(
-        projectNameWithoutUnderscores: projectNameWithoutUnderscores,
-        projectId: firebaseProjectId,
-      );
-
-      // Check if an error occurred during the firebase project creation
-      if (firebaseProjectCreation is String) {
-        _logger.err(firebaseProjectCreation);
-        return false;
-      }
-
-      // Continuously check for the created firebase project
-      const maxRetries = 10;
-      int attempt = 1;
-
-      while (!await firebaseProjectExists(
-        projectId: firebaseProjectId,
-      )) {
-        _logger.err(
-          "Project with ID '$firebaseProjectId' not found. Attempt $attempt/$maxRetries...",
-        );
-
-        // Increment attempt counter
-        attempt++;
-
-        // Exit if maximum retries reached
-        if (attempt > maxRetries) {
-          _logger.err(
-              'Unable to integrate firebase. Max retries reached. Exiting...');
-          return false;
-        }
-
-        // Wait before retrying
-        await Future<void>.delayed(const Duration(seconds: 1));
-      }
-    }
-
-    // Integrate the firebase project
-    _logger.info(blue.wrap('Integrating firebase...'));
-    final firebaseIntegration = await integrateFirebaseProject(
-      projectId: firebaseProjectId,
-      applicationId: applicationId,
-      projectName: projectName,
-    );
-
-    // Check if the firebase integration failed
-    if (firebaseIntegration is String) {
-      _logger.err(firebaseIntegration);
-      return false;
-    }
-
-    return true;
-  }
-
   @override
   Future<int> run() async {
     String? projectName = argResults?['project-name'] as String?;
@@ -242,10 +110,10 @@ class CreateCommand extends Command<int> {
         // we need it to create a new project
 
         // Run the 'firebase --version' command
-        final firebaseResult = await Process.run('firebase', ['--version']);
+        final firebaseResult = await FirebaseConfig.checkFirebaseInstallation();
 
         // If the exit code is not 0, the command failed
-        if (firebaseResult.exitCode != 0) {
+        if (firebaseResult != 0) {
           usageException(
             'Firebase CLI is not installed or not in PATH. You can '
             'install it here: https://firebase.google.com/docs/cli',
@@ -255,31 +123,19 @@ class CreateCommand extends Command<int> {
 
       // check if the user has the flutterfire CLI tool installed to integrate
       // the firebase project
-      final flutterfireResult = await Process.run('flutterfire', ['--version']);
+      final flutterFireResult =
+          await FirebaseConfig.checkFlutterfireInstallation(
+        logger: _logger,
+      );
 
       // If the exit code is not 0, the command failed
-      if (flutterfireResult.exitCode != 0) {
-        // Install the flutterfire CLI tool
-        _logger.info(blue.wrap('Installing flutterfire CLI tool...'));
-        final installFlutterFire = await Process.run(
-          'dart',
-          [
-            'pub',
-            'global',
-            'activate',
-            'flutterfire_cli',
-          ],
+      if (flutterFireResult != 0) {
+        usageException(
+          'Failed to install flutterfire CLI tool.',
         );
-
-        // check if the command failed
-        if (installFlutterFire.exitCode != 0) {
-          _logger.err('Failed to install flutterfire CLI tool.');
-          return ExitCode.software.code;
-        }
-
-        _logger.success('flutterfire CLI tool installed.');
       }
 
+      _logger.success('flutterfire CLI tool installed.');
     }
 
     // Check if the project name was provided
@@ -344,11 +200,10 @@ class CreateCommand extends Command<int> {
 
     // Check if the create command failed
     if ((await createVeryGoodFlutterApp.exitCode) != 0) {
-      _logger.err(
+      usageException(
         'Failed to create very_good_flutter_app. '
         '${createVeryGoodFlutterApp.stderr}',
       );
-      return ExitCode.software.code;
     }
 
     _logger
@@ -356,56 +211,26 @@ class CreateCommand extends Command<int> {
 
       // Delete the counter folders
       ..info(blue.wrap('Deleting counter folders...'));
-    final deleteAppCounterFolder =
-        await deleteFolder('$projectName/lib/counter');
-    final deleteTestCounterViewFolder =
-        await deleteFolder('$projectName/test/counter');
+    final deleteCounter = await deleteCounterFolders(
+      projectName: projectName,
+      logger: _logger,
+    );
 
     // check if any of them failed to delete
-    if (!deleteAppCounterFolder || !deleteTestCounterViewFolder) {
-      _logger.err('Failed to delete counter folders.');
-      return ExitCode.software.code;
+    if (!deleteCounter) {
+      usageException('Failed to delete counter folders.');
     }
+
+    // Instantiate the PackageManagement class to manage the packages
+    final packageManagement = PackageManagement(
+      projectName: projectName,
+    );
 
     // Install the required packages for setup
     _logger.info(blue.wrap('Installing required packages...'));
-    await Process.run(
-      'flutter',
-      [
-        'pub',
-        'add',
-        hasExternalBackend ? 'dio' : '',
-        'get_it',
-        'auto_route',
-        'equatable',
-        useRiverpod ? 'flutter_riverpod' : '',
-      ],
-      workingDirectory: projectName,
-    );
-
-    // Remove the flutter_gen package created by very_good_cli
-    await Process.run(
-      'flutter',
-      [
-        'pub',
-        'remove',
-        'flutter_gen',
-        ...(useRiverpod ? ['flutter_bloc', 'bloc', 'bloc_test'] : []),
-      ],
-      workingDirectory: projectName,
-    );
-
-    // Install the required dev dependencies for setup
-    await Process.run(
-      'flutter',
-      [
-        'pub',
-        'add',
-        '--dev',
-        'build_runner',
-        'auto_route_generator',
-      ],
-      workingDirectory: projectName,
+    await packageManagement.setupEssentialPackages(
+      hasExternalBackend: hasExternalBackend,
+      useRiverpod: useRiverpod,
     );
 
     if (applicationName != null) {
@@ -413,99 +238,55 @@ class CreateCommand extends Command<int> {
       //   TODO: Change Application name
     }
 
+    // Instantiate the BrickSetup class
+    final brickSetup = BrickSetup(
+      projectName: projectName,
+    );
+
     // Create basic setup files which include Get_it, Equatable,
     // and AutoRoute setup
     _logger.info(blue.wrap('Setting up setup files...'));
 
-    final makeBasicSetup = await Process.start(
-      'mason',
-      [
-        'make',
-        'basic_setup',
-        '-o',
-        projectName,
-        '--project-name',
-        projectName,
-        '--on-conflict',
-        'overwrite',
-        '--deeplink-scheme',
-        deeplinkUri?.scheme ?? '',
-        '--deeplink-host',
-        deeplinkUri?.host ?? '',
-        '--use-riverpod',
-        useRiverpod.toString(),
-      ],
-      mode: ProcessStartMode.inheritStdio,
+    final makeBasicSetup = await brickSetup.basicSetup(
+      useRiverpod: useRiverpod,
+      deeplinkUri: deeplinkUri,
     );
 
     if ((await makeBasicSetup.exitCode) != 0) {
-      _logger.err(
-        'Failed to setup setup files. ${makeBasicSetup.stderr}',
-      );
-      return ExitCode.software.code;
+      usageException('Failed to setup setup files. ${makeBasicSetup.stderr}');
     }
+
     _logger
       ..success('Setup files have been setup.')
 
       // Execute build runner to build the auto_route files
       ..info(blue.wrap('Building auto_route files...'));
-    final buildRunner = await Process.run(
-      'dart',
-      [
-        'run',
-        'build_runner',
-        'build',
-        '--delete-conflicting-outputs',
-      ],
-      workingDirectory: projectName,
-    );
+
+    final buildRunner = await packageManagement.buildAutoRouteFiles();
 
     if (buildRunner.exitCode != 0) {
-      _logger.err(
-        'Failed to build auto route files. ${buildRunner.stderr}',
-      );
-      return ExitCode.software.code;
+      usageException('Failed to build auto route files. ${buildRunner.stderr}');
     }
+
     _logger
       ..info('Auto route files have been built.')
 
       // run the flutter pub get command
       ..info('Running flutter pub get...');
-    await Process.run(
-      'flutter',
-      [
-        'pub',
-        'get',
-      ],
-      workingDirectory: projectName,
-    );
+    await packageManagement.pubGet();
 
     // check if the user opted for an external backend and create the
     // api_utils folder
     if (hasExternalBackend) {
       _logger.info(blue.wrap('Setting up api_utils...'));
 
-      final makeSetupWithExternalBackend = await Process.start(
-        'mason',
-        [
-          'make',
-          'basic_setup_with_external_backend',
-          '-o',
-          projectName,
-          '--project-name',
-          projectName,
-          '--on-conflict',
-          'overwrite',
-        ],
-        mode: ProcessStartMode.inheritStdio,
-      );
+      final makeSetupWithExternalBackend = await brickSetup.externalBackend();
 
       if ((await makeSetupWithExternalBackend.exitCode) != 0) {
-        _logger.err(
+        usageException(
           'Failed to setup external backend setup files. '
           '${makeSetupWithExternalBackend.stderr}',
         );
-        return ExitCode.software.code;
       }
       _logger.info('External backend files have been setup.');
 
@@ -530,40 +311,21 @@ class CreateCommand extends Command<int> {
       // the api_utils folder
       if (usesJWT == 'y') {
         _logger.info(blue.wrap('Installing flutter_secure_storage...'));
-        await Process.run(
-          'flutter',
-          [
-            'pub',
-            'add',
-            'flutter_secure_storage',
-          ],
-          workingDirectory: projectName,
+        await packageManagement.addPackages(
+          packages: ['flutter_secure_storage'],
         );
 
         _logger.info(blue.wrap('Setting up API Interceptor...'));
 
-        final makeSetupJWT = await Process.start(
-          'mason',
-          [
-            'make',
-            'backend_setup_with_jwt',
-            '-o',
-            projectName,
-            '--project-name',
-            projectName,
-            '--on-conflict',
-            'overwrite',
-          ],
-          mode: ProcessStartMode.inheritStdio,
-        );
+        final makeSetupJWT = await brickSetup.jwtBackend();
 
         if ((await makeSetupJWT.exitCode) != 0) {
-          _logger.err(
+          usageException(
             'Failed to setup API Interceptor for JWT authentication. '
             '${makeSetupJWT.stderr}',
           );
-          return ExitCode.software.code;
         }
+
         _logger.success(
           'Note: API, Auth, and TokenStorage services as well as the API '
           'Interceptor have been configured, and you will have to '
@@ -572,14 +334,20 @@ class CreateCommand extends Command<int> {
       }
     }
 
+    // Instantiate the FirebaseConfig class to setup Firebase
+    final firebaseconfig = FirebaseConfig(
+      projectName: projectName,
+      firebaseProjectId: firebaseProjectId,
+      applicationId: applicationId,
+    );
+
     // Check if the user wants to integrate Firebase without adding push notifications
     if (integrateFirebase && !addPushNotifications) {
-      final firebaseSetup = await setupFirebase(
-        projectName: projectName,
-        firebaseProjectId: firebaseProjectId,
-        applicationId: applicationId,
+      final firebaseSetup = await firebaseconfig.setupFirebase(
+        logger: _logger,
       );
 
+      // Check if the firebase setup failed
       if (!firebaseSetup) {
         return ExitCode.software.code;
       }
@@ -587,89 +355,54 @@ class CreateCommand extends Command<int> {
 
     // Check if the user wants to add notifications
     if (addPushNotifications) {
-      final firebaseSetup = await setupFirebase(
-        projectName: projectName,
-        firebaseProjectId: firebaseProjectId,
-        applicationId: applicationId,
+      final firebaseSetup = await firebaseconfig.setupFirebase(
+        logger: _logger,
       );
 
+      // Check if the firebase setup failed
       if (!firebaseSetup) {
         return ExitCode.software.code;
       }
 
+      // Install the required packages for push notifications
       _logger.info(
         blue.wrap(
           'Installing firebase_messaging, firebase_core, '
           'and flutter_local_notifications...',
         ),
       );
-
-      await Process.run(
-        'flutter',
-        [
-          'pub',
-          'add',
+      await packageManagement.addPackages(
+        packages: [
           'firebase_messaging',
           'firebase_core',
           'flutter_local_notifications',
         ],
-        workingDirectory: projectName,
       );
 
       _logger.info(blue.wrap('Setting up push notifications...'));
-
-      final makeSetupPushNotifications = await Process.start(
-        'mason',
-        [
-          'make',
-          'notifications_setup',
-          '-o',
-          projectName,
-          '--project-name',
-          projectName,
-          '--application-id',
-          applicationId,
-          '--on-conflict',
-          'overwrite',
-          '--deeplink-scheme',
-          deeplinkUri?.scheme ?? '',
-          '--deeplink-host',
-          deeplinkUri?.host ?? '',
-          '--use-riverpod',
-          useRiverpod.toString(),
-        ],
-        mode: ProcessStartMode.inheritStdio,
+      final makeSetupPushNotifications = await brickSetup.notificationsSetup(
+        applicationId: applicationId,
+        useRiverpod: useRiverpod,
+        deeplinkUri: deeplinkUri,
       );
 
       if ((await makeSetupPushNotifications.exitCode) != 0) {
-        _logger.err(
+        usageException(
           'Failed to setup notifications. ${makeSetupPushNotifications.stderr}',
         );
-        return ExitCode.software.code;
       }
+
       _logger.success('Notifications have been setup.');
     }
 
     // Run dart fix command to fix any lint issues
     _logger.info(blue.wrap('Running dart fix --apply...'));
-    await Process.run(
-      'dart',
-      [
-        'fix',
-        '--apply',
-      ],
-      workingDirectory: projectName,
-    );
+    await packageManagement.dartFix();
 
     // Remove the flutter_gen package created by the dart fix --apply
-    await Process.run(
-      'flutter',
-      [
-        'pub',
-        'remove',
-        'flutter_gen',
-      ],
-      workingDirectory: projectName,
+    await packageManagement.removeUnusedPackages(
+      useRiverpod: useRiverpod,
+      onlyFlutterGen: true,
     );
 
     // Project setup complete message
