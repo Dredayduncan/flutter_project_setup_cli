@@ -136,7 +136,8 @@ class FirebaseConfig {
         projectId: firebaseProjectId ?? '',
       )) {
         logger.err(
-          "Project with ID '$firebaseProjectId' not found. Attempt $attempt/$maxRetries...",
+          "Project with ID '$firebaseProjectId' not found. "
+          'Attempt $attempt/$maxRetries...',
         );
 
         // Increment attempt counter
@@ -145,7 +146,8 @@ class FirebaseConfig {
         // Exit if maximum retries reached
         if (attempt > maxRetries) {
           logger.err(
-              'Unable to integrate firebase. Max retries reached. Exiting...',);
+            'Unable to integrate firebase. Max retries reached. Exiting...',
+          );
           return false;
         }
 
