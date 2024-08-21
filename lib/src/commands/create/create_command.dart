@@ -232,7 +232,7 @@ class CreateCommand extends Command<int> {
 
     if (applicationName != null) {
       _logger.info(blue.wrap('Setting application name...'));
-      //   TODO: Change Application name
+      // TODO(felix): Change Application name
     }
 
     // Instantiate the BrickSetup class
