@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'dart:io';
-
-import 'package:args/command_runner.dart';
 import 'package:flutter_project_setup_cli/src/commands/create/create_command.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -10,7 +7,6 @@ import 'package:test/test.dart';
 class MockLogger extends Mock implements Logger {}
 
 class MockProcess extends Mock implements Process {}
-
 
 void main() {
   group('CreateCommand', () {
@@ -44,6 +40,5 @@ void main() {
       expect(usage, contains('--use-deep-linking'));
       expect(usage, contains('--add-push-notifications'));
     });
-
   });
 }

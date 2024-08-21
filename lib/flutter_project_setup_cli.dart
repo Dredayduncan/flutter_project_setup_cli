@@ -1,4 +1,5 @@
-/// flutter_project_setup_cli, A tool to bootstrap a flutter app with specified features
+/// flutter_project_setup_cli, A tool to bootstrap a flutter app with specified
+/// features
 ///
 /// ```sh
 /// # activate flutter_project_setup_cli

@@ -71,11 +71,11 @@ class CreateCommand extends Command<int> {
 
   final Logger _logger;
 
-  String? getProjectName () => argResults?['project-name'] as String?;
+  String? getProjectName() => argResults?['project-name'] as String?;
 
   @override
   Future<int> run() async {
-    String? projectName = getProjectName();
+    final projectName = getProjectName();
     final applicationId =
         (argResults?['application-id'] as String?) ?? 'com.example.app';
     final applicationName = argResults?['application-name'] as String?;
@@ -115,7 +115,8 @@ class CreateCommand extends Command<int> {
     if (integrateFirebase || addPushNotifications) {
       // Get the user's firebase project ID
       stdout.write(
-        'Enter your firebase project ID (leave blank to create a new firebase project): ',
+        'Enter your firebase project ID '
+        '(leave blank to create a new firebase project): ',
       );
       firebaseProjectId = stdin.readLineSync()?.trim();
 
@@ -249,7 +250,9 @@ class CreateCommand extends Command<int> {
     );
 
     if ((await makeBasicSetup.exitCode) != 0) {
-      throw usageException('Failed to setup setup files. ${makeBasicSetup.stderr}');
+      throw usageException(
+        'Failed to setup setup files. ${makeBasicSetup.stderr}',
+      );
     }
 
     _logger
@@ -261,7 +264,9 @@ class CreateCommand extends Command<int> {
     final buildRunner = await packageManagement.buildAutoRouteFiles();
 
     if (buildRunner.exitCode != 0) {
-      throw usageException('Failed to build auto route files. ${buildRunner.stderr}');
+      throw usageException(
+        'Failed to build auto route files. ${buildRunner.stderr}',
+      );
     }
 
     _logger
@@ -337,7 +342,8 @@ class CreateCommand extends Command<int> {
       applicationId: applicationId,
     );
 
-    // Check if the user wants to integrate Firebase without adding push notifications
+    // Check if the user wants to integrate Firebase without adding
+    // push notifications
     if (integrateFirebase && !addPushNotifications) {
       final firebaseSetup = await firebaseconfig.setupFirebase(
         logger: _logger,

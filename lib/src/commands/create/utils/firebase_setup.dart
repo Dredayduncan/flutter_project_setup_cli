@@ -130,7 +130,7 @@ class FirebaseConfig {
 
       // Continuously check for the created firebase project
       const maxRetries = 10;
-      int attempt = 1;
+      var attempt = 1;
 
       while (!await _firebaseProjectExists(
         projectId: firebaseProjectId ?? '',
@@ -145,7 +145,7 @@ class FirebaseConfig {
         // Exit if maximum retries reached
         if (attempt > maxRetries) {
           logger.err(
-              'Unable to integrate firebase. Max retries reached. Exiting...');
+              'Unable to integrate firebase. Max retries reached. Exiting...',);
           return false;
         }
 
