@@ -73,5 +73,3 @@ Future<bool> deleteCounterFolders({
 
   return deleteAppCounterFolder && deleteTestCounterViewFolder;
 }
-
-

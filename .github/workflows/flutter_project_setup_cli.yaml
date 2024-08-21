@@ -24,8 +24,11 @@ jobs:
   semantic-pull-request:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
 
-#  build:
-#    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
+  build:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
+    with:
+      format_directories: lib test
+      min_coverage: 20
 
 #  spell-check:
 #    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1

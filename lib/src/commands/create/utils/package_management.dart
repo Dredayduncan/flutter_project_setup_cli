@@ -80,8 +80,8 @@ class PackageManagement {
         'get_it',
         'auto_route',
         'equatable',
-        hasExternalBackend ? 'dio' : '',
-        useRiverpod ? 'flutter_riverpod' : '',
+        if (hasExternalBackend) 'dio' else '',
+        if (useRiverpod) 'flutter_riverpod' else '',
       ],
     );
 

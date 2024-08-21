@@ -71,18 +71,33 @@ class CreateCommand extends Command<int> {
 
   final Logger _logger;
 
+  String? getProjectName() => argResults?['project-name'] as String?;
+
   @override
   Future<int> run() async {
-    String? projectName = argResults?['project-name'] as String?;
+    final projectName = getProjectName();
     final applicationId =
         (argResults?['application-id'] as String?) ?? 'com.example.app';
     final applicationName = argResults?['application-name'] as String?;
-    final integrateFirebase = argResults?['integrate-firebase'] as bool;
-    final useRiverpod = argResults?['use-riverpod'] as bool;
-    final hasExternalBackend = argResults?['has-external-backend'] as bool;
-    final addPushNotifications = argResults?['add-push-notifications'] as bool;
-    final useDeepLinking = argResults?['use-deep-linking'] as bool;
+    final integrateFirebase =
+        (argResults?['integrate-firebase'] as bool?) ?? false;
+    final useRiverpod = (argResults?['use-riverpod'] as bool?) ?? false;
+    final hasExternalBackend =
+        (argResults?['has-external-backend'] as bool?) ?? false;
+    final addPushNotifications =
+        (argResults?['add-push-notifications'] as bool?) ?? false;
+    final useDeepLinking = (argResults?['use-deep-linking'] as bool?) ?? false;
     String? firebaseProjectId;
+
+    // Check if the project name was provided
+    if (projectName == null) {
+      throw usageException('Project name is required.');
+    } else if (!RegExp(r'^[a-z_]+$').hasMatch(projectName)) {
+      throw usageException(
+        'Invalid project name. Please use only lowercase letters '
+        'and underscores.',
+      );
+    }
 
     // Check if the user has very_good_cli installed
     // Run the 'firebase --version' command
@@ -90,7 +105,7 @@ class CreateCommand extends Command<int> {
 
     // If the exit code is not 0, the command failed
     if (veryGoodCLIResult.exitCode != 0) {
-      usageException(
+      throw usageException(
         'very_good_cli is not installed or not in PATH. You can '
         'install it with this command: pub global activate very_good_cli',
       );
@@ -100,7 +115,8 @@ class CreateCommand extends Command<int> {
     if (integrateFirebase || addPushNotifications) {
       // Get the user's firebase project ID
       stdout.write(
-        'Enter your firebase project ID (leave blank to create a new firebase project): ',
+        'Enter your firebase project ID '
+        '(leave blank to create a new firebase project): ',
       );
       firebaseProjectId = stdin.readLineSync()?.trim();
 
@@ -114,7 +130,7 @@ class CreateCommand extends Command<int> {
 
         // If the exit code is not 0, the command failed
         if (firebaseResult != 0) {
-          usageException(
+          throw usageException(
             'Firebase CLI is not installed or not in PATH. You can '
             'install it here: https://firebase.google.com/docs/cli',
           );
@@ -130,31 +146,12 @@ class CreateCommand extends Command<int> {
 
       // If the exit code is not 0, the command failed
       if (flutterFireResult != 0) {
-        usageException(
+        throw usageException(
           'Failed to install flutterfire CLI tool.',
         );
       }
 
       _logger.success('flutterfire CLI tool installed.');
-    }
-
-    // Check if the project name was provided
-    if (projectName == null) {
-      // validate the project name
-      while (projectName == null) {
-        stdout.write(
-          'Enter your project name (lowercase letters and underscores only): ',
-        );
-        projectName = stdin.readLineSync()?.trim();
-        if (projectName != null && RegExp(r'^[a-z_]+$').hasMatch(projectName)) {
-          break;
-        }
-
-        _logger.err(
-          'Invalid project name. Please use only lowercase letters and '
-          'underscores.',
-        );
-      }
     }
 
     // Check if the user wants to implement deep linking and get
@@ -200,7 +197,7 @@ class CreateCommand extends Command<int> {
 
     // Check if the create command failed
     if ((await createVeryGoodFlutterApp.exitCode) != 0) {
-      usageException(
+      throw usageException(
         'Failed to create very_good_flutter_app. '
         '${createVeryGoodFlutterApp.stderr}',
       );
@@ -218,7 +215,7 @@ class CreateCommand extends Command<int> {
 
     // check if any of them failed to delete
     if (!deleteCounter) {
-      usageException('Failed to delete counter folders.');
+      throw usageException('Failed to delete counter folders.');
     }
 
     // Instantiate the PackageManagement class to manage the packages
@@ -235,7 +232,7 @@ class CreateCommand extends Command<int> {
 
     if (applicationName != null) {
       _logger.info(blue.wrap('Setting application name...'));
-      //   TODO: Change Application name
+      // TODO(felix): Change Application name
     }
 
     // Instantiate the BrickSetup class
@@ -253,7 +250,9 @@ class CreateCommand extends Command<int> {
     );
 
     if ((await makeBasicSetup.exitCode) != 0) {
-      usageException('Failed to setup setup files. ${makeBasicSetup.stderr}');
+      throw usageException(
+        'Failed to setup setup files. ${makeBasicSetup.stderr}',
+      );
     }
 
     _logger
@@ -265,7 +264,9 @@ class CreateCommand extends Command<int> {
     final buildRunner = await packageManagement.buildAutoRouteFiles();
 
     if (buildRunner.exitCode != 0) {
-      usageException('Failed to build auto route files. ${buildRunner.stderr}');
+      throw usageException(
+        'Failed to build auto route files. ${buildRunner.stderr}',
+      );
     }
 
     _logger
@@ -283,7 +284,7 @@ class CreateCommand extends Command<int> {
       final makeSetupWithExternalBackend = await brickSetup.externalBackend();
 
       if ((await makeSetupWithExternalBackend.exitCode) != 0) {
-        usageException(
+        throw usageException(
           'Failed to setup external backend setup files. '
           '${makeSetupWithExternalBackend.stderr}',
         );
@@ -320,7 +321,7 @@ class CreateCommand extends Command<int> {
         final makeSetupJWT = await brickSetup.jwtBackend();
 
         if ((await makeSetupJWT.exitCode) != 0) {
-          usageException(
+          throw usageException(
             'Failed to setup API Interceptor for JWT authentication. '
             '${makeSetupJWT.stderr}',
           );
@@ -341,7 +342,8 @@ class CreateCommand extends Command<int> {
       applicationId: applicationId,
     );
 
-    // Check if the user wants to integrate Firebase without adding push notifications
+    // Check if the user wants to integrate Firebase without adding
+    // push notifications
     if (integrateFirebase && !addPushNotifications) {
       final firebaseSetup = await firebaseconfig.setupFirebase(
         logger: _logger,
@@ -387,7 +389,7 @@ class CreateCommand extends Command<int> {
       );
 
       if ((await makeSetupPushNotifications.exitCode) != 0) {
-        usageException(
+        throw usageException(
           'Failed to setup notifications. ${makeSetupPushNotifications.stderr}',
         );
       }
