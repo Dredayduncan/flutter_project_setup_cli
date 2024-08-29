@@ -34,6 +34,11 @@ Or locally via:
 dart pub global activate --source=path <path to this package>
 ```
 
+Or from Github via:
+```sh
+dart pub global activate --source git https://github.com/Dredayduncan/flutter_project_setup_cli.git
+```
+
 ## Usage
 
 ```sh
