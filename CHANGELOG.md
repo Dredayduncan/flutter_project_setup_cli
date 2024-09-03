@@ -4,6 +4,7 @@ Flutter Project Setup CLI Changelog
 
 ### Fixed
 - Resolved an issue where CLI would fail to generate required files when outside the project directory
+- Resolved an issue where firebase project creation failed
 
 ### Added
 - Added tests for the create command
