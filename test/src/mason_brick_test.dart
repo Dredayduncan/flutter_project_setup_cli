@@ -1,11 +1,14 @@
-import 'package:flutter_project_setup_cli/src/commands/create/utils/brick_setup.dart';
+import 'package:flutter_project_setup_cli/src/commands/create/utils'
+    '/brick_setup.dart';
 import 'package:mason/mason.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 // Mock classes
 class MockLogger extends Mock implements Logger {}
+
 class MockDirectory extends Mock implements DirectoryGeneratorTarget {}
+
 class MockMasonGenerator extends Mock implements MasonGenerator {}
 
 void main() {
@@ -41,18 +44,18 @@ void main() {
     });
 
     group('successfulTests', () {
-
       setUp(() {
-        when(() => mockGenerator.generate(
-          mockDirectory,
-          vars: any(named: 'vars'),
-          logger: mockLogger,
-          fileConflictResolution: any(named: 'fileConflictResolution'),
-        ),).thenAnswer((_) async => []);
+        when(
+          () => mockGenerator.generate(
+            mockDirectory,
+            vars: any(named: 'vars'),
+            logger: mockLogger,
+            fileConflictResolution: any(named: 'fileConflictResolution'),
+          ),
+        ).thenAnswer((_) async => []);
       });
 
       test('generates basic setup files successfully', () async {
-
         final result = await brickSetup.setupBasicFiles(
           useRiverpod: true,
           deeplinkUri: Uri.parse('myapp://example.com'),
@@ -64,8 +67,7 @@ void main() {
       });
 
       test('generates external backend files successfully', () async {
-
-        final result = await brickSetup.setupExternalBackendFiles( );
+        final result = await brickSetup.setupExternalBackendFiles();
 
         // Expect
         expect(result, isNull);
@@ -73,7 +75,6 @@ void main() {
       });
 
       test('generates JWT files successfully', () async {
-
         final result = await brickSetup.setupJWTBackendFiles();
 
         // Expect
@@ -82,7 +83,6 @@ void main() {
       });
 
       test('generates notification files successfully', () async {
-
         final result = await brickSetup.setupNotificationFiles(
           useRiverpod: true,
           applicationId: 'com.example.app',
@@ -93,11 +93,9 @@ void main() {
         expect(result, isNull);
         verify(() => mockLogger.success(any())).called(1);
       });
-
     });
 
     group('FailedTests', () {
-
       test('handle basic setup errors', () async {
         // Stub
         when(
@@ -120,7 +118,7 @@ void main() {
       test('handle external backend setup errors', () async {
         // Stub
         when(
-              () => mockGenerator.generate(
+          () => mockGenerator.generate(
             mockDirectory,
             vars: any(named: 'vars'),
             logger: mockLogger,
@@ -136,7 +134,7 @@ void main() {
       test('handle jwt setup errors', () async {
         // Stub
         when(
-              () => mockGenerator.generate(
+          () => mockGenerator.generate(
             mockDirectory,
             vars: any(named: 'vars'),
             logger: mockLogger,
@@ -152,7 +150,7 @@ void main() {
       test('handle notification setup errors', () async {
         // Stub
         when(
-              () => mockGenerator.generate(
+          () => mockGenerator.generate(
             mockDirectory,
             vars: any(named: 'vars'),
             logger: mockLogger,
@@ -169,98 +167,5 @@ void main() {
         expect(result, contains('Notification files'));
       });
     });
-
-    // group('setupExternalBackendFiles', () {
-    //   test('generates files successfully', () async {
-    //     when(
-    //       () => mockGenerator.generate(
-    //         any(),
-    //         vars: any(named: 'vars'),
-    //         logger: mockLogger,
-    //         fileConflictResolution: any(named: 'fileConflictResolution'),
-    //       ),
-    //     ).thenAnswer((_) async {});
-    //
-    //     final result = await brickSetup.setupExternalBackendFiles();
-    //
-    //     expect(result, isNull);
-    //     verify(() => mockLogger.success(any())).called(1);
-    //   });
-    //
-    // });
-    //
-    // group('setupJWTBackendFiles', () {
-    //   test('generates files successfully', () async {
-    //     when(
-    //       () => mockGenerator.generate(
-    //         any(),
-    //         vars: any(named: 'vars'),
-    //         logger: mockLogger,
-    //         fileConflictResolution: any(named: 'fileConflictResolution'),
-    //       ),
-    //     ).thenAnswer((_) async {});
-    //
-    //     final result = await brickSetup.setupJWTBackendFiles();
-    //
-    //     expect(result, isNull);
-    //     verify(() => mockLogger.success(any())).called(1);
-    //   });
-    //
-    //   test('handles errors', () async {
-    //     when(
-    //       () => mockGenerator.generate(
-    //         any(),
-    //         vars: any(named: 'vars'),
-    //         logger: mockLogger,
-    //         fileConflictResolution: any(named: 'fileConflictResolution'),
-    //       ),
-    //     ).thenThrow(Exception('Test error'));
-    //
-    //     final result = await brickSetup.setupJWTBackendFiles();
-    //
-    //     expect(result, contains('Error generating files'));
-    //   });
-    // });
-    //
-    // group('setupNotificationFiles', () {
-    //   test('generates files successfully', () async {
-    //     when(
-    //       () => mockGenerator.generate(
-    //         any(),
-    //         vars: any(named: 'vars'),
-    //         logger: mockLogger,
-    //         fileConflictResolution: any(named: 'fileConflictResolution'),
-    //       ),
-    //     ).thenAnswer((_) async {});
-    //
-    //     final result = await brickSetup.setupNotificationFiles(
-    //       applicationId: 'com.example.app',
-    //       useRiverpod: true,
-    //       deeplinkUri: Uri.parse('myapp://example.com'),
-    //     );
-    //
-    //     expect(result, isNull);
-    //     verify(() => mockLogger.success(any())).called(1);
-    //   });
-    //
-    //   test('handles errors', () async {
-    //     when(
-    //       () => mockGenerator.generate(
-    //         any(),
-    //         vars: any(named: 'vars'),
-    //         logger: mockLogger,
-    //         fileConflictResolution: any(named: 'fileConflictResolution'),
-    //       ),
-    //     ).thenThrow(Exception('Test error'));
-    //
-    //     final result = await brickSetup.setupNotificationFiles(
-    //       applicationId: 'com.example.app',
-    //       useRiverpod: true,
-    //       deeplinkUri: Uri.parse('myapp://example.com'),
-    //     );
-    //
-    //     expect(result, contains('Error generating files'));
-    //   });
-    // });
   });
 }
