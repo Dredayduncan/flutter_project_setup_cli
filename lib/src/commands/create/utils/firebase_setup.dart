@@ -93,7 +93,6 @@ class FirebaseConfig {
   Future<bool> setupFirebase({
     required Logger logger,
   }) async {
-
     // Check if the user provided a firebase project ID and check if it exists
     if (firebaseProjectId != null && firebaseProjectId!.isNotEmpty) {
       logger.info(
