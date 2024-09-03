@@ -238,28 +238,26 @@ class CreateCommand extends Command<int> {
     // Instantiate the BrickSetup class
     final brickSetup = BrickSetup(
       projectName: projectName,
+      logger: _logger,
     );
 
     // Create basic setup files which include Get_it, Equatable,
     // and AutoRoute setup
-    _logger.info(blue.wrap('Setting up setup files...'));
+    _logger.info(blue.wrap('Creating up setup files...'));
 
-    final makeBasicSetup = await brickSetup.basicSetup(
+    final makeBasicSetup = await brickSetup.setupBasicFiles(
       useRiverpod: useRiverpod,
       deeplinkUri: deeplinkUri,
     );
 
-    if ((await makeBasicSetup.exitCode) != 0) {
+    if (makeBasicSetup is String) {
       throw usageException(
-        'Failed to setup setup files. ${makeBasicSetup.stderr}',
+        'Failed to create setup files. $makeBasicSetup',
       );
     }
 
-    _logger
-      ..success('Setup files have been setup.')
-
-      // Execute build runner to build the auto_route files
-      ..info(blue.wrap('Building auto_route files...'));
+    // Execute build runner to build the auto_route files
+    _logger.info(blue.wrap('Building auto_route files...'));
 
     final buildRunner = await packageManagement.buildAutoRouteFiles();
 
@@ -270,7 +268,7 @@ class CreateCommand extends Command<int> {
     }
 
     _logger
-      ..info('Auto route files have been built.')
+      ..success('Auto route files have been built.')
 
       // run the flutter pub get command
       ..info('Running flutter pub get...');
@@ -279,17 +277,16 @@ class CreateCommand extends Command<int> {
     // check if the user opted for an external backend and create the
     // api_utils folder
     if (hasExternalBackend) {
-      _logger.info(blue.wrap('Setting up api_utils...'));
+      // Create the external backend files
+      final makeSetupWithExternalBackend =
+          await brickSetup.setupExternalBackendFiles();
 
-      final makeSetupWithExternalBackend = await brickSetup.externalBackend();
-
-      if ((await makeSetupWithExternalBackend.exitCode) != 0) {
+      if (makeSetupWithExternalBackend is String) {
         throw usageException(
           'Failed to setup external backend setup files. '
-          '${makeSetupWithExternalBackend.stderr}',
+          '$makeSetupWithExternalBackend',
         );
       }
-      _logger.info('External backend files have been setup.');
 
       String? usesJWT;
 
@@ -316,22 +313,15 @@ class CreateCommand extends Command<int> {
           packages: ['flutter_secure_storage'],
         );
 
-        _logger.info(blue.wrap('Setting up API Interceptor...'));
+        // Create the JWT backend files
+        final makeSetupJWT = await brickSetup.setupJWTBackendFiles();
 
-        final makeSetupJWT = await brickSetup.jwtBackend();
-
-        if ((await makeSetupJWT.exitCode) != 0) {
+        if (makeSetupJWT is String) {
           throw usageException(
             'Failed to setup API Interceptor for JWT authentication. '
-            '${makeSetupJWT.stderr}',
+            '$makeSetupJWT',
           );
         }
-
-        _logger.success(
-          'Note: API, Auth, and TokenStorage services as well as the API '
-          'Interceptor have been configured, and you will have to '
-          'implement the refreshToken function in the AuthService.',
-        );
       }
     }
 
@@ -381,20 +371,19 @@ class CreateCommand extends Command<int> {
         ],
       );
 
-      _logger.info(blue.wrap('Setting up push notifications...'));
-      final makeSetupPushNotifications = await brickSetup.notificationsSetup(
+      // Create the push notifications files
+      final makeSetupPushNotifications =
+          await brickSetup.setupNotificationFiles(
         applicationId: applicationId,
         useRiverpod: useRiverpod,
         deeplinkUri: deeplinkUri,
       );
 
-      if ((await makeSetupPushNotifications.exitCode) != 0) {
+      if (makeSetupPushNotifications is String) {
         throw usageException(
-          'Failed to setup notifications. ${makeSetupPushNotifications.stderr}',
+          'Failed to setup notifications. $makeSetupPushNotifications',
         );
       }
-
-      _logger.success('Notifications have been setup.');
     }
 
     // Run dart fix command to fix any lint issues
