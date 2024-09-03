@@ -16,3 +16,4 @@ coverage/
 
 # FVM Version Cache
 .fvm/
+.fvmrc

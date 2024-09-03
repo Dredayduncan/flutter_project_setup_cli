@@ -39,6 +39,7 @@ class UpdateCommand extends Command<int> {
       _logger.err('$error');
       return ExitCode.software.code;
     }
+
     updateCheckProgress.complete('Checked for updates');
 
     final isUpToDate = packageVersion == latestVersion;
