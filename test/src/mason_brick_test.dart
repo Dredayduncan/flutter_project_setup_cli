@@ -30,6 +30,7 @@ void main() {
       projectName: 'test_project',
       logger: mockLogger,
       generatorFactory: mockGeneratorFactory,
+      targetDirectory: mockDirectory,
     );
   });
 
@@ -39,31 +40,65 @@ void main() {
       expect(brickSetup.logger, equals(mockLogger));
     });
 
-    group('setupBasicFiles', () {
+    group('successfulTests', () {
 
-      test('generates files successfully', () async {
-
-        // Stub
+      setUp(() {
         when(() => mockGenerator.generate(
           mockDirectory,
           vars: any(named: 'vars'),
           logger: mockLogger,
           fileConflictResolution: any(named: 'fileConflictResolution'),
         ),).thenAnswer((_) async => []);
+      });
+
+      test('generates basic setup files successfully', () async {
 
         final result = await brickSetup.setupBasicFiles(
           useRiverpod: true,
           deeplinkUri: Uri.parse('myapp://example.com'),
         );
 
-        print("here: ${result.toString()}");
+        // Expect
+        expect(result, isNull);
+        verify(() => mockLogger.success(any())).called(1);
+      });
+
+      test('generates external backend files successfully', () async {
+
+        final result = await brickSetup.setupExternalBackendFiles( );
 
         // Expect
         expect(result, isNull);
         verify(() => mockLogger.success(any())).called(1);
       });
 
-      test('handles errors', () async {
+      test('generates JWT files successfully', () async {
+
+        final result = await brickSetup.setupJWTBackendFiles();
+
+        // Expect
+        expect(result, isNull);
+        verify(() => mockLogger.success(any())).called(1);
+      });
+
+      test('generates notification files successfully', () async {
+
+        final result = await brickSetup.setupNotificationFiles(
+          useRiverpod: true,
+          applicationId: 'com.example.app',
+          deeplinkUri: Uri.parse('myapp://example.com'),
+        );
+
+        // Expect
+        expect(result, isNull);
+        verify(() => mockLogger.success(any())).called(1);
+      });
+
+    });
+
+    group('FailedTests', () {
+
+      test('handle basic setup errors', () async {
         // Stub
         when(
           () => mockGenerator.generate(
@@ -80,6 +115,58 @@ void main() {
         );
 
         expect(result, contains('Basic setup files'));
+      });
+
+      test('handle external backend setup errors', () async {
+        // Stub
+        when(
+              () => mockGenerator.generate(
+            mockDirectory,
+            vars: any(named: 'vars'),
+            logger: mockLogger,
+            fileConflictResolution: FileConflictResolution.overwrite,
+          ),
+        ).thenThrow(Exception('Test error'));
+
+        final result = await brickSetup.setupExternalBackendFiles();
+
+        expect(result, contains('External backend files'));
+      });
+
+      test('handle jwt setup errors', () async {
+        // Stub
+        when(
+              () => mockGenerator.generate(
+            mockDirectory,
+            vars: any(named: 'vars'),
+            logger: mockLogger,
+            fileConflictResolution: FileConflictResolution.overwrite,
+          ),
+        ).thenThrow(Exception('Test error'));
+
+        final result = await brickSetup.setupJWTBackendFiles();
+
+        expect(result, contains('JWT files'));
+      });
+
+      test('handle notification setup errors', () async {
+        // Stub
+        when(
+              () => mockGenerator.generate(
+            mockDirectory,
+            vars: any(named: 'vars'),
+            logger: mockLogger,
+            fileConflictResolution: FileConflictResolution.overwrite,
+          ),
+        ).thenThrow(Exception('Test error'));
+
+        final result = await brickSetup.setupNotificationFiles(
+          useRiverpod: true,
+          deeplinkUri: Uri.parse('myapp://example.com'),
+          applicationId: 'com.example.app',
+        );
+
+        expect(result, contains('Notification files'));
       });
     });
 
@@ -100,20 +187,6 @@ void main() {
     //     verify(() => mockLogger.success(any())).called(1);
     //   });
     //
-    //   test('handles errors', () async {
-    //     when(
-    //       () => mockGenerator.generate(
-    //         any(),
-    //         vars: any(named: 'vars'),
-    //         logger: mockLogger,
-    //         fileConflictResolution: any(named: 'fileConflictResolution'),
-    //       ),
-    //     ).thenThrow(Exception('Test error'));
-    //
-    //     final result = await brickSetup.setupExternalBackendFiles();
-    //
-    //     expect(result, contains('Error generating files'));
-    //   });
     // });
     //
     // group('setupJWTBackendFiles', () {

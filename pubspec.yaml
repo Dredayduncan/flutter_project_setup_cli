@@ -1,6 +1,6 @@
 name: flutter_project_setup_cli
 description: A tool to bootstrap a flutter app with specified features
-version: 0.0.3
+version: 0.0.2
 publish_to: none
 
 environment:

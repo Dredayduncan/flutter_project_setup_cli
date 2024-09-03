@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:mason/mason.dart';
@@ -19,25 +18,28 @@ enum MasonBrick {
 }
 
 Future<MasonGenerator> defaultGeneratorFactory(
-    MasonBrick masonBrick,
-    String gitUrl,
-    ) async {
+  MasonBrick masonBrick,
+  String gitUrl,
+) async {
   final brick = Brick.git(
     GitPath(gitUrl, path: masonBrick.brickPath, ref: 'main'),
   );
   return MasonGenerator.fromBrick(brick);
 }
 
-
 class BrickSetup {
   BrickSetup({
     required this.projectName,
     required this.logger,
     MasonGeneratorFactory? generatorFactory,
-  }) :
-    _generatorFactory = generatorFactory ?? defaultGeneratorFactory,
-    _targetDirectory = DirectoryGeneratorTarget(Directory(projectName));
-
+    DirectoryGeneratorTarget? targetDirectory,
+  })  : _generatorFactory = generatorFactory ?? defaultGeneratorFactory,
+        _targetDirectory = targetDirectory ??
+            DirectoryGeneratorTarget(
+              Directory(
+                projectName,
+              ),
+            );
 
   final String projectName;
   final Logger logger;
@@ -79,8 +81,7 @@ class BrickSetup {
       logger.success('Basic setup completed for $projectName');
 
       return null;
-    } catch (e, st) {
-      print(st.toString());
+    } catch (e) {
       return 'Basic setup files: $e';
     }
   }
