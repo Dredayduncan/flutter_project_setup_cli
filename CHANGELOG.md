@@ -9,6 +9,7 @@ Flutter Project Setup CLI Changelog
 ### Added
 - Added tests for the create command
 - Added tests for mason brick generations
+- Added a delay after firebase project creation to allow for project provisioning before integrating it
 
 ## 0.0.1
 
