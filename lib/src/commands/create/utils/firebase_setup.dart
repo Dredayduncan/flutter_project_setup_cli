@@ -128,6 +128,9 @@ class FirebaseConfig {
         return false;
       }
 
+      // Wait for a short time to allow for project provisioning
+      await Future<void>.delayed(const Duration(seconds: 10));
+
       // Continuously check for the created firebase project
       const maxRetries = 10;
       var attempt = 1;
