@@ -94,7 +94,7 @@ class FirebaseConfig {
     required Logger logger,
   }) async {
     // Check if the user provided a firebase project ID and check if it exists
-    if (firebaseProjectId != null) {
+    if (firebaseProjectId != null && firebaseProjectId!.isNotEmpty) {
       logger.info(
         blue.wrap(
           'Checking if the firebase project ($firebaseProjectId) exists...',
